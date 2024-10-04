@@ -18,6 +18,19 @@ redis.on("connect", ()=>{
     console.log("Redis connected successfully");
 })
 
+app.get("/", async(req, res)=>{
+    const clientIp = req.headers["x-forward-for"] || req.socket.remoteAddress;
+
+    const reqCount = await redis.incr(clientIp);
+
+    if(reqCount === 1){
+        await redis.expire(clientIp, 60)
+    }
+
+    if(reqCount > 10) return res.status(429).json({message:"To many attems"})
+    return res.send(`hello world ${reqCount}`);
+})
+
 app.get("/products", getProduct("products"), async(req, res) => {
 
     const products = await getProductPromise();
